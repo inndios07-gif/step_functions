@@ -1,0 +1,131 @@
+{
+  "Comment": "An example of using Bedrock to chain prompts and their responses together.",
+  "StartAt": "Ideias de comidas para jantar romântico",
+  "QueryLanguage": "JSONata",
+  "States": {
+    "Add first result to conversation history": {
+      "Type": "Pass",
+      "Next": "Ideias de bebidas para jantar romântico",
+      "Assign": {
+        "counter": "{% $count($states.input.prompts) %}",
+        "conversation_history": [
+          ""
+        ],
+        "input_prompts": "{% $reverse($states.input.prompts) %}"
+      },
+      "Output": {
+        "convo_one.$": "Stats.format('{}\n{}', $.prompt_one, $.result_one)"
+      }
+    },
+    "Add second result to conversation history": {
+      "Type": "Pass",
+      "Next": "Ideias de comidas para lugares românticos",
+      "Assign": {
+        "counter": "{% $count($states.input.prompts) %}",
+        "conversation_history": [
+          ""
+        ],
+        "input_prompts": "{% $reverse($states.input.prompts) %}"
+      },
+      "Output": {
+        "convo_one.$": "Stats.format('{}\n{}', $.prompt_two, $.result_two)"
+      }
+    },
+    "Ideias de comidas para jantar romântico": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 200,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Estou programando um jantar romântico, nesse jantar irei pedir um macarrão me de três itens que combinam com essa experiência gastronômica."
+                }
+              ]
+            }
+          ]
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Assign": {
+        "conversation_history": "{% $append($conversation_history, $states.result.Body.output.message.content[0].text) %}",
+        "counter": "{% $counter - 1 %}"
+      },
+      "Next": "Add first result to conversation history",
+      "Output": {
+        "result_one.$": "$:Body.content[0].text"
+      }
+    },
+    "Ideias de bebidas para jantar romântico": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 200,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Liste duas bebidas que acompanhe uma jantar romântico"
+                }
+              ]
+            }
+          ]
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Assign": {
+        "conversation_history": "{% $append($conversation_history, $states.result.Body.output.message.content[0].text) %}",
+        "counter": "{% $counter - 1 %}"
+      },
+      "Next": "Add second result to conversation history",
+      "Output": {
+        "result_two.$": "$:Body.content[0].text"
+      }
+    },
+    "Ideias de comidas para lugares românticos": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 200,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Liste um lugar para um jantar romantico em Paris"
+                }
+              ]
+            }
+          ]
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Assign": {
+        "conversation_history": "{% $append($conversation_history, $states.result.Body.output.message.content[0].text) %}",
+        "counter": "{% $counter - 1 %}"
+      },
+      "End": true,
+      "Output": {
+        "result_three.$": "$:Body.content[0].text"
+      }
+    }
+  }
+}
